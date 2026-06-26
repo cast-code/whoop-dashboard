@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Julian's WHOOP Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0A0F0D;--surface:#111814;--surface2:#161D19;--border:#1E2B24;
+    --green:#00E87A;--green-dim:#00E87A22;--yellow:#FFD60A;--yellow-dim:#FFD60A22;
+    --red:#FF3B3B;--red-dim:#FF3B3B22;--blue:#4DA6FF;
+    --text:#E8F0EC;--muted:#5A7066;--font:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+  .hidden{display:none!important}
+  #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .auth-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 32px}
+  .auth-logo{width:48px;height:48px;background:var(--green);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#000;margin-bottom:24px}
+  .auth-title{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+  .auth-sub{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.5}
+  .auth-btn{width:100%;padding:15px;background:var(--green);color:#000;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer}
+  .auth-btn:hover{opacity:.85}
+  .auth-note{font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.5}
+  #callback-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #dashboard{max-width:680px;margin:0 auto;padding:20px 16px 60px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-top:8px}
+  .avatar{width:38px;height:38px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#000}
+  .header-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+  .header-date{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+  .icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer}
+  .icon-btn:hover{color:var(--text);border-color:var(--green)}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px}
+  .tab{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:7px 13px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .tab.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px}
+  .section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 10px}
+  .recovery-hero{border-radius:20px;padding:24px;margin-bottom:12px}
+  .recovery-hero.green{background:var(--surface);border:1px solid var(--green)}
+  .recovery-hero.yellow{background:var(--surface);border:1px solid var(--yellow)}
+  .recovery-hero.red{background:var(--surface);border:1px solid var(--red)}
+  .recovery-number{font-size:68px;font-weight:700;line-height:1;letter-spacing:-3px;font-family:var(--mono)}
+  .recovery-hero.green .recovery-number{color:var(--green)}
+  .recovery-hero.yellow .recovery-number{color:var(--yellow)}
+  .recovery-hero.red .recovery-number{color:var(--red)}
+  .recovery-status{font-size:13px;font-weight:600;margin-top:6px;color:var(--muted)}
+  .recovery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+  .r-stat{background:var(--surface2);border-radius:10px;padding:10px;text-align:center}
+  .r-stat-val{font-size:18px;font-weight:700;font-family:var(--mono)}
+  .r-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+  .rec-card{border-radius:12px;padding:14px 16px;margin-bottom:12px;border:1px solid transparent}
+  .rec-card.green{background:var(--green-dim);border-color:#00E87A30}
+  .rec-card.yellow{background:var(--yellow-dim);border-color:#FFD60A30}
+  .rec-card.red{background:var(--red-dim);border-color:#FF3B3B30}
+  .rec-title{font-size:13px;font-weight:700;margin-bottom:5px}
+  .rec-card.green .rec-title{color:var(--green)}
+  .rec-card.yellow .rec-title{color:var(--yellow)}
+  .rec-card.red .rec-title{color:var(--red)}
+  .rec-body{font-size:13px;color:var(--text);line-height:1.55;opacity:.85}
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .metric-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .metric-val{font-size:26px;font-weight:700;font-family:var(--mono)}
+  .metric-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+  .metric-vs{font-size:11px;color:var(--muted);margin-top:4px}
+  .sleep-stages{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+  .stage{background:var(--surface2);border-radius:10px;padding:10px 6px;text-align:center}
+  .stage-val{font-size:16px;font-weight:700;font-family:var(--mono)}
+  .stage-label{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+  .workout-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+  .workout-row:last-child{border-bottom:none}
+  .workout-name{font-size:13px;font-weight:600}
+  .workout-meta{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+  .workout-strain{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--yellow)}
+  .trend-bars{display:flex;align-items:flex-end;gap:6px;height:90px;margin-bottom:10px}
+  .trend-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+  .trend-bar{width:100%;border-radius:4px;min-height:6px}
+  .trend-day{font-size:10px;color:var(--muted)}
+  .trend-pct{font-size:10px;font-family:var(--mono);color:var(--muted)}
+  .bl-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+  .bl-row:last-child{border-bottom:none}
+  .bl-diff{font-family:var(--mono);font-weight:700}
+  .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:8px;font-family:var(--font);font-size:11px;cursor:pointer}
+  .logout-btn:hover{color:var(--red);border-color:var(--red)}
+  .error-msg{background:var(--red-dim);border:1px solid #FF3B3B30;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--red);margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">💚</div>
+    <div class="auth-title">Julian's WHOOP Dashboard</div>
+    <div class="auth-sub">Connect your WHOOP to see live recovery, sleep, HRV, and personalized training recommendations — all calibrated to your LA baselines.</div>
+    <button class="auth-btn" onclick="startAuth()">Connect WHOOP Account</button>
+    <div class="auth-note">You'll authorize on WHOOP's site. Your credentials are never stored in this app.</div>
+  </div>
+</div>
+
+<div id="callback-screen" class="hidden">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--muted)">Connecting to WHOOP...</div>
+</div>
+
+<div id="dashboard" class="hidden">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar">J</div>
+      <div>
+        <div class="header-name">Julian's Dashboard</div>
+        <div class="header-date" id="header-date">—</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" onclick="loadData()">↻ Refresh</button>
+      <button class="logout-btn" onclick="logout()">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('today',this)">Today</button>
+    <button class="tab" onclick="showTab('sleep',this)">Sleep</button>
+    <button class="tab" onclick="showTab('workouts',this)">Workouts</button>
+    <button class="tab" onclick="showTab('trends',this)">Trends</button>
+  </div>
+
+  <div id="err"></div>
+
+  <div id="tab-today">
+    <div id="recovery-hero" class="recovery-hero yellow">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Recovery Score</div>
+      <div class="recovery-number" id="rec-score">—</div>
+      <div class="recovery-status" id="rec-status">Loading...</div>
+      <div class="recovery-grid">
+        <div class="r-stat"><div class="r-stat-val" id="r-hrv">—</div><div class="r-stat-label">HRV ms</div></div>
+        <div class="r-stat"><div class="r-stat-val" id="r-rhr">—</div><div class="r-stat-label">RHR bpm</div></div>
+        <div class="r-stat"><div class="r-stat-val" id="r-strain">—</div><div class="r-stat-label">Strain</div></div>
+      </div>
+    </div>
+    <div id="rec-card-container"></div>
+    <div class="section-label">Health Metrics</div>
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-val" id="m-spo2">—</div><div class="metric-label">SpO₂</div><div class="metric-vs">Blood oxygen</div></div>
+      <div class="metric-card"><div class="metric-val" id="m-resp">—</div><div class="metric-label">Resp Rate</div><div class="metric-vs">Breaths/min</div></div>
+      <div class="metric-card"><div class="metric-val" id="m-temp">—</div><div class="metric-label">Skin Temp</div><div class="metric-vs">From baseline</div></div>
+      <div class="metric-card"><div class="metric-val" id="m-sleep-perf">—</div><div class="metric-label">Sleep Score</div><div class="metric-vs">Last night</div></div>
+    </div>
+  </div>
+
+  <div id="tab-sleep" class="hidden">
+    <div class="section-label">Last Night's Sleep</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px">Performance</div>
+          <div style="font-size:42px;font-weight:700;font-family:var(--mono);color:var(--blue)" id="s-score">—%</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--muted);font-family:var(--mono)" id="s-times">— → —</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:6px" id="s-duration">—hrs total</div>
+      <div class="sleep-stages">
+        <div class="stage"><div class="stage-val" id="s-light" style="color:var(--blue)">—</div><div class="stage-label">Light</div></div>
+        <div class="stage"><div class="stage-val" id="s-deep" style="color:var(--green)">—</div><div class="stage-label">Deep</div></div>
+        <div class="stage"><div class="stage-val" id="s-rem" style="color:var(--yellow)">—</div><div class="stage-label">REM</div></div>
+        <div class="stage"><div class="stage-val" id="s-awake" style="color:var(--red)">—</div><div class="stage-label">Awake</div></div>
+      </div>
+    </div>
+    <div class="section-label">vs Your LA Baseline</div>
+    <div class="card" id="baseline-table"></div>
+  </div>
+
+  <div id="tab-workouts" class="hidden">
+    <div class="section-label">Recent Workouts</div>
+    <div class="card" id="workouts-list"><div style="color:var(--muted);font-size:13px">Loading...</div></div>
+  </div>
+
+  <div id="tab-trends" class="hidden">
+    <div class="section-label">7-Day Recovery</div>
+    <div class="card" id="trends-chart"><div style="color:var(--muted);font-size:13px">Loading...</div></div>
+  </div>
+</div>
+
+<script>
+const getClientId = () => window.__CONFIG__?.clientId;
+const getRedirectUri = () => window.__CONFIG__?.redirectUri;
+const TOKEN_FUNCTION = '/.netlify/functions/token-exchange';
+const AUTH_URL = 'https://api.prod.whoop.com/oauth/oauth2/auth';
+const API = 'https://api.prod.whoop.com/developer/v1';
+const SCOPES = 'offline read:recovery read:sleep read:profile read:workout read:cycles read:body_measurement';
+const BL = {sleep:84,deep:105,rem:115,hrv:61,rhr:54};
+
+let token = localStorage.getItem('wa_token');
+let refresh = localStorage.getItem('wa_refresh');
+
+window.onload = async () => {
+  // Load config from server
+  try {
+    const cfg = await fetch("/.netlify/functions/config").then(r => r.json());
+    window.__CONFIG__ = cfg;
+  } catch(e) { console.error("Config load failed", e); }
+
+  const p = new URLSearchParams(window.location.search);
+  const code = p.get('code'), state = p.get('state');
+  if (code && state === localStorage.getItem('wa_state')) {
+    show('callback'); await exchange(code);
+  } else if (token) {
+    show('dashboard'); await loadData();
+  } else { show('auth'); }
+};
+
+function show(s) {
+  document.getElementById('auth-screen').classList.toggle('hidden', s!=='auth');
+  document.getElementById('callback-screen').classList.toggle('hidden', s!=='callback');
+  document.getElementById('dashboard').classList.toggle('hidden', s!=='dashboard');
+}
+
+function showTab(id, btn) {
+  ['today','sleep','workouts','trends'].forEach(t => document.getElementById('tab-'+t).classList.toggle('hidden', t!==id));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (id==='workouts') loadWorkouts();
+  if (id==='trends') loadTrends();
+}
+
+function startAuth() {
+  const state = Math.random().toString(36).slice(2);
+  localStorage.setItem('wa_state', state);
+  const CLIENT_ID = getClientId();
+  const REDIRECT_URI = getRedirectUri();
+  if (!CLIENT_ID) { alert('Config not loaded yet — please wait a moment and try again.'); return; }
+  const p = new URLSearchParams({client_id:CLIENT_ID,redirect_uri:REDIRECT_URI,response_type:'code',scope:SCOPES,state});
+  window.location.href = AUTH_URL + '?' + p;
+}
+
+async function exchange(code) {
+  try {
+    const r = await fetch(TOKEN_FUNCTION, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({grant_type:'authorization_code', code, redirectUri: getRedirectUri()})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      token = d.access_token; refresh = d.refresh_token;
+      localStorage.setItem('wa_token', token);
+      localStorage.setItem('wa_refresh', refresh);
+      window.history.replaceState({}, '', window.location.pathname);
+      show('dashboard'); await loadData();
+    } else { showErr('Auth failed — try connecting again.'); show('auth'); }
+  } catch { showErr('Connection error.'); show('auth'); }
+}
+
+async function refreshToken() {
+  try {
+    const r = await fetch(TOKEN_FUNCTION, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({grant_type:'refresh_token', refresh_token:refresh})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      token = d.access_token; refresh = d.refresh_token || refresh;
+      localStorage.setItem('wa_token', token);
+      localStorage.setItem('wa_refresh', refresh);
+      return true;
+    }
+    return false;
+  } catch { return false; }
+}
+
+async function api(endpoint) {
+  const opts = {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({token, endpoint})
+  };
+  let r = await fetch('/.netlify/functions/whoop-api', opts);
+  if (r.status===401) {
+    const ok = await refreshToken();
+    if (ok) r = await fetch('/.netlify/functions/whoop-api', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token, endpoint})
+    });
+    else { logout(); return null; }
+  }
+  return r.ok ? r.json() : null;
+}
+
+function logout() {
+  localStorage.removeItem('wa_token'); localStorage.removeItem('wa_refresh'); localStorage.removeItem('wa_state');
+  token=null; refresh=null; show('auth');
+}
+
+function showErr(msg) {
+  document.getElementById('err').innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+  setTimeout(() => document.getElementById('err').innerHTML='', 5000);
+}
+
+async function loadData() {
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  const [rec, slp, cyc] = await Promise.all([api('/recovery?limit=1'), api('/activity/sleep?limit=3'), api('/cycle?limit=1')]);
+  if (rec?.records?.[0]) renderRecovery(rec.records[0]);
+  const mainSleep = slp?.records?.find(s => !s.nap);
+  if (mainSleep) renderSleep(mainSleep);
+  if (cyc?.records?.[0]) document.getElementById('r-strain').textContent = (cyc.records[0].score?.strain||0).toFixed(1);
+}
+
+function renderRecovery(r) {
+  const score = Math.round(r.score?.recovery_score||0);
+  const hrv = Math.round(r.score?.hrv_rmssd_milli||0);
+  const rhr = Math.round(r.score?.resting_heart_rate||0);
+  const spo2 = (r.score?.spo2_percentage||0).toFixed(1);
+  const resp = (r.score?.respiratory_rate||0).toFixed(1);
+  const temp = r.score?.skin_temp_fahrenheit;
+
+  document.getElementById('rec-score').textContent = score+'%';
+  document.getElementById('r-hrv').textContent = hrv+'ms';
+  document.getElementById('r-hrv').style.color = hrv>=BL.hrv?'var(--green)':'var(--red)';
+  document.getElementById('r-rhr').textContent = rhr;
+  document.getElementById('m-spo2').textContent = spo2+'%';
+  document.getElementById('m-resp').textContent = resp;
+  if (temp) { const d=(temp-98.6).toFixed(1); document.getElementById('m-temp').textContent=(d>0?'+':'')+d+'°F'; }
+
+  let cls, status, recTitle, recBody;
+  if (score>=67) {
+    cls='green'; status='Green — Ready to perform';
+    recTitle='✅ Green Day — Push it';
+    recBody = score>=85
+      ? 'Excellent recovery. Full gymnastics + CF — PR attempts on the table. Target WHOOP strain 13–16.'
+      : 'Solid green. Full Justin programming, gymnastics skill work. Good day for technical progression. Target strain 11–14.';
+  } else if (score>=34) {
+    cls='yellow'; status='Yellow — Train smart';
+    recTitle='🟡 Yellow Day — Train with intention';
+    recBody = score>=55
+      ? 'Mid-yellow. Full programming but auto-regulate intensity. Strain 8–12. Beach ride OK as active recovery.'
+      : 'Low yellow. Attend class at 70% intensity. No PR attempts. Good day for a beach ride instead of extra sessions.';
+  } else {
+    cls='red'; status='Red — Rest only';
+    recTitle='🔴 Red Day — Rest';
+    recBody='No gym. 20-min sunlight walk only. Focus on food, sleep, and hydration. Your next session will be better for it.';
+  }
+
+  document.getElementById('recovery-hero').className='recovery-hero '+cls;
+  document.getElementById('rec-status').textContent=status;
+  document.getElementById('rec-card-container').innerHTML=`<div class="rec-card ${cls}"><div class="rec-title">${recTitle}</div><div class="rec-body">${recBody}</div></div>`;
+}
+
+function renderSleep(s) {
+  const score = Math.round(s.score?.sleep_performance_percentage||0);
+  const total = Math.round((s.score?.total_in_bed_time_milli||0)/60000);
+  const deep = Math.round((s.score?.slow_wave_sleep_duration_milli||0)/60000);
+  const rem = Math.round((s.score?.rem_sleep_duration_milli||0)/60000);
+  const light = Math.round((s.score?.light_sleep_duration_milli||0)/60000);
+  const awake = Math.round((s.score?.awake_duration_milli||0)/60000);
+  const start=new Date(s.start), end=new Date(s.end);
+  const fmt=d=>d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+
+  document.getElementById('s-score').textContent=score+'%';
+  document.getElementById('s-times').innerHTML=fmt(start)+'<br>→ '+fmt(end);
+  document.getElementById('s-duration').textContent=(total/60).toFixed(1)+'hrs total';
+  document.getElementById('s-light').textContent=light+'m';
+  document.getElementById('s-deep').textContent=deep+'m';
+  document.getElementById('s-rem').textContent=rem+'m';
+  document.getElementById('s-awake').textContent=awake+'m';
+  document.getElementById('m-sleep-perf').textContent=score+'%';
+
+  const rows=[
+    ['Sleep score',score+'%',BL.sleep+'%',score-BL.sleep,'%'],
+    ['Deep sleep',deep+'m',BL.deep+'m',deep-BL.deep,'m'],
+    ['REM sleep',rem+'m',BL.rem+'m',rem-BL.rem,'m'],
+  ];
+  document.getElementById('baseline-table').innerHTML=rows.map(([label,cur,base,diff,unit])=>`
+    <div class="bl-row">
+      <span style="color:var(--muted)">${label}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;font-family:var(--mono);font-weight:700">${cur}</span>
+        <span class="bl-diff" style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${diff}${unit} vs baseline</span>
+      </div>
+    </div>`).join('');
+}
+
+async function loadWorkouts() {
+  const el=document.getElementById('workouts-list');
+  const d=await api('/activity/workout?limit=10');
+  if (!d?.records?.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">No recent workouts.</div>';return;}
+  const sports={0:'Activity',1:'Running',2:'Cycling',3:'Functional Fitness',44:'Functional Fitness',45:'CrossFit',63:'Gymnastics',71:'HIIT',72:'Strength Training',126:'Box Fitness',74:'Stair Climbing',46:'Walking'};
+  el.innerHTML=d.records.map(w=>{
+    const date=new Date(w.start);
+    const dur=Math.round((new Date(w.end)-date)/60000);
+    const strain=(w.score?.strain||0).toFixed(1);
+    const avgHR=Math.round(w.score?.average_heart_rate||0);
+    return `<div class="workout-row"><div><div class="workout-name">${sports[w.sport_id]||'Workout'}</div><div class="workout-meta">${date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} · ${dur}min · ${avgHR}bpm</div></div><div class="workout-strain">${strain}</div></div>`;
+  }).join('');
+}
+
+async function loadTrends() {
+  const el=document.getElementById('trends-chart');
+  const d=await api('/recovery?limit=7');
+  if (!d?.records?.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">No data.</div>';return;}
+  const recs=[...d.records].reverse();
+  const avg=Math.round(recs.reduce((a,r)=>a+(r.score?.recovery_score||0),0)/recs.length);
+  el.innerHTML=`
+    <div class="trend-bars">
+      ${recs.map(r=>{
+        const s=Math.round(r.score?.recovery_score||0);
+        const h=Math.max(8,s*.85);
+        const c=s>=67?'var(--green)':s>=34?'var(--yellow)':'var(--red)';
+        const day=new Date(r.created_at).toLocaleDateString('en-US',{weekday:'short'});
+        return `<div class="trend-bar-wrap"><div class="trend-pct">${s}%</div><div class="trend-bar" style="height:${h}px;background:${c};opacity:.8"></div><div class="trend-day">${day}</div></div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px">
+      <span>7-day avg: <strong style="color:var(--text)">${avg}%</strong></span>
+      <span>LA baseline: <strong style="color:var(--text)">68%</strong></span>
+    </div>`;
+}
+</script>
+</body>
+</html>
