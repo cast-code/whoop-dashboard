@@ -1,11 +1,10 @@
 const https = require('https');
 
-function httpsGet(url, token) {
+function httpsGet(endpoint, token) {
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
     const options = {
-      hostname: urlObj.hostname,
-      path: urlObj.pathname + urlObj.search,
+      hostname: 'api.prod.whoop.com',
+      path: '/developer/v1' + endpoint,
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -23,24 +22,25 @@ function httpsGet(url, token) {
 }
 
 exports.handler = async (event) => {
-  const headers = {
+  const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json'
   };
 
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'POST only' }) };
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: corsHeaders, body: '' };
+
+  const token = event.queryStringParameters && event.queryStringParameters.t;
+  const endpoint = event.queryStringParameters && event.queryStringParameters.e;
+
+  if (!token) return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'No token' }) };
+  if (!endpoint) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'No endpoint' }) };
 
   try {
-    const { token, endpoint } = JSON.parse(event.body);
-    if (!token) return { statusCode: 401, headers, body: JSON.stringify({ error: 'No token' }) };
-    if (!endpoint) return { statusCode: 400, headers, body: JSON.stringify({ error: 'No endpoint' }) };
-
-    const result = await httpsGet(`https://api.prod.whoop.com/developer/v1${endpoint}`, token);
-    return { statusCode: result.status, headers, body: result.body };
+    const result = await httpsGet(decodeURIComponent(endpoint), token);
+    return { statusCode: result.status, headers: corsHeaders, body: result.body };
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
   }
 };
